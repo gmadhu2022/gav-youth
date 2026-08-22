@@ -6,7 +6,13 @@ class StartConversation(BaseModel):
 
 
 class SendMessage(BaseModel):
-    content: str
+    content: str | None = None
+    type: str = "text"                      # text | image | file | audio
+    attachment_path: str | None = None
+    attachment_name: str | None = None
+    attachment_size: int | None = None
+    attachment_mime: str | None = None
+    duration_ms: int | None = None
 
 
 class ProfileUpdate(BaseModel):

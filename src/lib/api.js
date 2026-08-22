@@ -24,9 +24,16 @@ export const api = {
   // conversations
   listConversations: () => req('/conversations'),
   getConversation: (id) => req(`/conversations/${id}`),
+  olderMessages: (id, before) => req(`/conversations/${id}/messages?before=${encodeURIComponent(before)}`),
+  summary: (id) => req(`/conversations/${id}/summary`),
   startConversation: (otherUser) => req('/conversations', { method: 'POST', body: { other_user: otherUser } }),
-  sendMessage: (id, content) => req(`/conversations/${id}/messages`, { method: 'POST', body: { content } }),
+  sendMessage: (id, payload) =>
+    req(`/conversations/${id}/messages`, {
+      method: 'POST',
+      body: typeof payload === 'string' ? { content: payload } : payload,
+    }),
   markRead: (id) => req(`/conversations/${id}/read`, { method: 'POST' }),
+  suggestions: (id) => req(`/conversations/${id}/suggestions`),
   // people & profile
   listPeople: () => req('/people'),
   updateProfile: (data) => req('/profile', { method: 'PUT', body: data }),

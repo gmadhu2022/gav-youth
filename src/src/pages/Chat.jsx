@@ -5,6 +5,7 @@ import Avatar from '../components/Avatar'
 import Attachment from '../components/Attachment'
 import { useAuth } from '../context/AuthContext'
 import { useCall } from '../context/CallContext'
+import { usePresence } from '../context/PresenceContext'
 import { supabase, fmtTime, fmtSeen } from '../lib/supabase'
 import { api } from '../lib/api'
 import { uploadAttachment } from '../lib/storage'
@@ -26,6 +27,7 @@ export default function Chat() {
   const nav = useNavigate()
   const { user } = useAuth()
   const { startCall } = useCall()
+  const { isOnline } = usePresence()
 
   const [other, setOther] = useState(null)
   const [messages, setMessages] = useState([])
@@ -39,6 +41,7 @@ export default function Chat() {
   const [hasMore, setHasMore] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [summary, setSummary] = useState({ open: false, loading: false, text: null, error: null })
+  const [otherTyping, setOtherTyping] = useState(false)
 
   const endRef = useRef(null)
   const scrollRef = useRef(null)
@@ -51,6 +54,9 @@ export default function Chat() {
   const suggestedFor = useRef(null)
   const anchorRef = useRef(null)   // scrollHeight snapshot for prepend
   const lastIdRef = useRef(null)
+  const typingChanRef = useRef(null)
+  const lastTypingSent = useRef(0)
+  const typingClearTimer = useRef(null)
 
   const scrollDown = () => endRef.current?.scrollIntoView({ behavior: 'smooth' })
 
@@ -106,6 +112,29 @@ export default function Chat() {
       anchorRef.current = null
     }
   }, [messages])
+
+  // typing indicator over a broadcast channel
+  useEffect(() => {
+    const ch = supabase.channel(`typing-${id}`, { config: { broadcast: { self: false } } })
+    ch.on('broadcast', { event: 'typing' }, ({ payload }) => {
+      if (payload.from === user.id) return
+      setOtherTyping(true)
+      clearTimeout(typingClearTimer.current)
+      typingClearTimer.current = setTimeout(() => setOtherTyping(false), 3000)
+    })
+    ch.subscribe()
+    typingChanRef.current = ch
+    return () => { supabase.removeChannel(ch); clearTimeout(typingClearTimer.current); setOtherTyping(false) }
+  }, [id, user.id])
+
+  const notifyTyping = () => {
+    const now = Date.now()
+    if (now - lastTypingSent.current < 1200) return
+    lastTypingSent.current = now
+    typingChanRef.current?.send({ type: 'broadcast', event: 'typing', payload: { from: user.id } })
+  }
+
+  const onComposerChange = (e) => { setText(e.target.value); notifyTyping() }
 
   const loadOlder = async () => {
     if (!messages.length || loadingOlder) return
@@ -218,7 +247,13 @@ export default function Chat() {
         <Avatar name={other?.name} url={other?.avatar_url} size={42} />
         <div style={{ flex: 1 }}>
           <div className="name">{other?.name || other?.username || '…'}</div>
-          <div className="seen">{fmtSeen(other?.last_seen)}</div>
+          <div className="seen">
+            {otherTyping
+              ? <span className="typing-ind">typing<span className="typing-dots"><i /><i /><i /></span></span>
+              : isOnline(other?.id)
+                ? <span className="online-text">online</span>
+                : fmtSeen(other?.last_seen)}
+          </div>
         </div>
         <button className="chev" aria-label="Catch me up" onClick={catchMeUp}><ScrollText size={20} /></button>
         <button className="chev" aria-label="Voice call" disabled={!other} onClick={() => callPeer(false)}><Phone size={20} /></button>
@@ -297,7 +332,7 @@ export default function Chat() {
             <button type="button" className="attach-btn" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Attach file">
               {uploading ? <Loader2 size={20} className="spin" /> : <Paperclip size={20} />}
             </button>
-            <input placeholder={uploading ? 'Uploading…' : 'Message'} value={text} onChange={(e) => setText(e.target.value)} />
+            <input placeholder={uploading ? 'Uploading…' : 'Message'} value={text} onChange={onComposerChange} />
             {text.trim() ? (
               <button className="send-btn" aria-label="Send"><Send size={20} /></button>
             ) : (

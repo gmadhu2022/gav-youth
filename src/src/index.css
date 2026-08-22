@@ -474,6 +474,25 @@ a { color: inherit; }
 }
 .load-older:hover { color: var(--text); }
 
+/* Presence + typing */
+.online-text { color: #4ecb71; font-weight: 600; }
+.typing-ind { color: var(--g1); display: inline-flex; align-items: center; gap: 4px; }
+.typing-dots { display: inline-flex; gap: 2px; }
+.typing-dots i {
+  width: 4px; height: 4px; border-radius: 50%; background: var(--g1);
+  display: inline-block; animation: typing-b 1.2s infinite ease-in-out;
+}
+.typing-dots i:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing-b { 0%, 60%, 100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+
+.avatar-wrap { position: relative; flex: none; }
+.online-dot {
+  position: absolute; right: 1px; bottom: 1px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #4ecb71; border: 2.5px solid var(--bg);
+}
+
 .attach-btn {
   width: 44px; height: 44px; border-radius: 50%;
   border: none; flex: none;
