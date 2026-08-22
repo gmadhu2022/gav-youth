@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     # AI reply suggestions. Set ONE provider's key. Leave both blank to disable.
     # Groq (free, OpenAI-compatible):
-    groq_api_key: str = "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"
+    groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-20b"
     # Anthropic (Claude):
     anthropic_api_key: str = ""
